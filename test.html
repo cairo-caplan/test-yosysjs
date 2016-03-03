@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Test Verilog</title>
+<style type="text/css" media="screen">
+    #editor { 
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+</style>
+</head>
+<body>
+
+
+<div id="editor">function foo(items) {
+    var x = "All this is syntax highlighted";
+    return x;
+}</div>
+    
+<script src="./ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="../yosysjs/yosysjs.js"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/eclipse");
+    editor.getSession().setMode("ace/mode/verilog");
+	//
+	// needed for YosysJS.dot_to_svg() and YosysJS.dot_into_svg()
+	YosysJS.load_viz();
+
+	// create a Yosys instance
+	var ys = YosysJS.create();
+
+</script>
+<iframe id="ys_iframe" style="width: 100%;"></iframe>
+<script>
+	var ys = YosysJS.create('ys_iframe', function() { console.log	("ready."); });
+// Print all Yosys output messages to the iframe
+ys.verbose = false;
+
+// Print all Yosys output messages to the JavaScript console
+ys.logprint = false;
+
+// Echo back commands
+ys.echo = false;
+</script>
+
+</body>
+</html>
