@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Test Verilog</title>
+<style type="text/css" media="screen">
+    #editor { 
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+ 
+
+</style>
+<html><head>
+	<title>YosysJS Example Application #01</title>
+	<script type="text/javascript" src="./yosysjs.js"></script>
+	<!--<script src="./ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>-->
+	<script src="./ace/ace.js" type="text/javascript" charset="utf-8"></script>
+</head><body onload="document.getElementById('command').focus()">
+	<h1>YosysJS Example Application #01</h1>
+	<table width="100%"><tr><td><div id="tabs"></div></td><td align="right"><tt>[ <span onclick="load_example()">load example</span> ]</tt></td></tr></table>
+	<svg id="svg" style="display: none; position: absolute; padding: 10px; width: calc(100% - 40px); height: 480px;"></svg>
+	<div id="lol" style="width: 100%; height: 500px"> lolll</div>
+	<!--<textarea id="output" style="width: 100%; height: 500px"></textarea> -->
+	<div id="wait" style="display: block"><br/><b><span id="waitmsg">Loading...</span></b></div>
+	<div id="input" style="display: none"><form onsubmit="window.setTimeout(run_command); return false"><br/><tt><span id="prompt">
+			</span></tt><input id="command" type="text" onkeydown="history(event)" style="font-family: monospace; font-weight: bold;" size="100"></form></div>
+	<script type='text/javascript'>
+
+		//
+		//var textarea = $('textarea[name="description"]').hide();
+		/*editor.getSession().setValue(textarea.val());
+		editor.getSession().on('change', function(){
+		  textarea.val(editor.getSession().getValue());
+		});*/
+ 		//editor.setTheme("ace/theme/eclipse");
+    		//editor.getSession().setMode("ace/mode/verilog");
+		var editor = ace.edit("lol");
+		editor.setTheme("ace/theme/eclipse");
+    		editor.getSession().setMode("ace/mode/verilog");
+
+		function print_output(text) {
+			//var el = document.getElementById('output');
+			//el.value += text + "\n";
+
+			//var editor = document.getElementById("lol");
+			editor.setValue(text + "\n",0);
+		}
+
+		YosysJS.load_viz();
+		var ys = YosysJS.create("", function() {
+			print_output(ys.print_buffer);
+
+			document.getElementById('wait').style.display = 'none';
+			document.getElementById('input').style.display = 'block';
+			document.getElementById('waitmsg').textContent = 'Waiting for yosys.js...';
+			document.getElementById('prompt').textContent = ys.prompt();
+
+			update_tabs();
+		});
+
+		ys.echo = true;
+
+		var history_log = [];
+		var history_index = 0;
+		var history_bak = "";
+
+		function history(ev) {
+			if (ev.keyCode == 38) {
+				el = document.getElementById('command');
+				if (history_index == history_log.length)
+					history_bak = el.value
+				if (history_index > 0)
+					el.value = history_log[--history_index];
+			}
+			if (ev.keyCode == 40) {
+				if (history_index < history_log.length) {
+					el = document.getElementById('command');
+					if (++history_index < history_log.length)
+						el.value = history_log[history_index];
+					else
+						el.value = history_bak;
+				}
+			}
+		}
+
+		var current_file = "";
+		var console_messages = "";
+		var svg_cache = { };
+
+		function update_tabs() {
+			var editor = ace.edit("lol");
+			document.getElementById('lol').style.width = "100%";
+			var f, html = "", flist = ys.read_dir('.');
+			if (current_file == "") {
+				html += '<tt>[ <b>Console</b>';
+			} else {
+				html += '<tt>[ <span onclick="open_file(\'\')">Console</span>';
+			}
+			for (i in flist) {
+				f = flist[i]
+				if (f == "." || f == "..")
+					continue;
+				if (current_file == f) {
+					html += ' | <b>' + f + '</b>';
+				} else {
+					html += ' | <span onclick="open_file(\'' + f + '\')">' + f + '</span>';
+				}
+			}
+			html += ' | <span onclick="open_file(prompt(\'Filename:\'))">new file</span> ]</tt>';
+			document.getElementById('tabs').innerHTML = html;
+			if (current_file == "" || /\.dot$/.test(current_file)) {
+				//var element = document.getElementById('output');
+				//element.readOnly = true;
+				//element.scrollTop = element.scrollHeight; // focus on bottom
+				//var editor = document.getElementById("lol");
+			
+				//element.scrollTop = element.scrollHeight;
+
+				editor.setReadOnly(true);
+
+				document.getElementById('command').focus();
+			} else {
+				//document.getElementById('output').readOnly = false;
+				//document.getElementById('output').focus();
+				//var editor = document.getElementById("lol");
+				editor.setReadOnly(false);
+				editor.focus(true);
+
+	
+			}
+		}
+
+		function open_file(filename)
+		{
+			//var editor = document.getElementById("lol");
+			var editor = ace.edit("lol");
+
+			if (current_file == "")
+				//console_messages = document.getElementById('output').value;
+				console_messages = editor.getValue();
+			else if (!/\.dot$/.test(current_file))
+				ys.write_file(current_file, editor.getValue());
+
+			if (filename == "") {
+				//document.getElementById('output').value = console_messages;
+				editor.setValue(console_messages,0);
+			} else {
+				try {
+					//document.getElementById('output').value = ys.read_file(filename);
+					editor.setValue(ys.read_file(filename),0);
+				} catch (e) {
+					//document.getElementById('output').value = "";
+					editor.setValue("",0);
+					//ys.write_file(filename, document.getElementById('output').value);
+					ys.write_file(filename,editor.getValue);
+				}
+			}
+
+			if (/\.dot$/.test(filename)) {
+				dot = editor.getValue();
+				YosysJS.dot_into_svg(dot, 'svg');
+				document.getElementById('svg').style.display = 'block';
+				document.getElementById('lol').style.display = 'none';
+			} else {
+				
+				document.getElementById('svg').innerHTML = '';
+				document.getElementById('svg').style.display = 'none';
+				document.getElementById('lol').style.display = 'block';
+			}
+			editor.clearSelection();
+			current_file = filename;
+			update_tabs();
+		}
+
+		function startup() {
+		}
+
+		function load_example() {
+			open_file('')
+
+			var txt = "";
+			txt += "// a simple yosys.js example. run \"script example.ys\".\n";
+			txt += "\n";
+			txt += "module example(input clk, input rst, input inc, output reg [3:0] cnt);\n";
+			txt += "  always @(posedge clk) begin\n";
+			txt += "    if (rst)\n";
+			txt += "      cnt <= 0;\n";
+			txt += "    else if (inc)\n";
+			txt += "      cnt <= cnt + 1;\n";
+			txt += "  end\n";
+			txt += "endmodule\n";
+			txt += "\n";
+			ys.write_file('example.v', txt);
+
+			var txt = "";
+			txt += "# a simple yosys.js example. run \"script example.ys\".\n";
+			txt += "\n";
+			txt += "design -reset\n";
+			txt += "read_verilog example.v\n";
+			txt += "proc\n";
+			txt += "opt\n";
+			txt += "show\n";
+			txt += "\n";
+			ys.write_file('example.ys', txt);
+
+			open_file('example.ys')
+			document.getElementById('command').focus();
+		}
+
+		function run_command() {
+			var cmd = document.getElementById('command').value;
+			document.getElementById('command').value = '';
+			if (history_log.length == 0 || history_log[history_log.length-1] != cmd)
+				history_log.push(cmd);
+			history_index = history_log.length;
+
+			var show_dot_before = "";
+			try { show_dot_before = ys.read_file('show.dot'); } catch (e) { }
+
+			open_file('');
+
+			document.getElementById('wait').style.display = 'block';
+			document.getElementById('input').style.display = 'none';
+
+			function run_command_bh() {
+				try {
+					ys.run(cmd);
+				} catch (e) {
+					ys.write('Caught JavaScript exception. (see JavaScript console for details.)');
+					console.log(e);
+				}
+				print_output(ys.print_buffer);
+
+				document.getElementById('wait').style.display = 'none';
+				document.getElementById('input').style.display = 'block';
+				document.getElementById('prompt').textContent = ys.prompt();
+
+				var show_dot_after = "";
+				try { show_dot_after = ys.read_file('show.dot'); } catch (e) { }
+
+				if (show_dot_before != show_dot_after)
+					open_file('show.dot');
+
+				update_tabs();
+			}
+
+			window.setTimeout(run_command_bh, 50);
+			return false;
+		}
+		
+		/*editor.getSession().setValue(textarea.val());
+		editor.getSession().on('change', function(){
+		  textarea.val(editor.getSession().getValue());
+		});*/
+
+
+	</script>
+</body></html>
+
+
+
+<!--
+<div id="editor">function foo(items) {
+    var x = "All this is syntax highlighted";
+    return x;
+}</div>
+    
+<script src="./ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="../yosysjs/yosysjs.js"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/eclipse");
+    editor.getSession().setMode("ace/mode/verilog");
+	//
+	// needed for YosysJS.dot_to_svg() and YosysJS.dot_into_svg()
+	YosysJS.load_viz();
+
+	// create a Yosys instance
+	var ys = YosysJS.create();
+
+</script>
+<iframe id="ys_iframe" style="width: 100%;"></iframe>
+<script>
+	var ys = YosysJS.create('ys_iframe', function() { console.log	("ready."); });
+// Print all Yosys output messages to the iframe
+ys.verbose = false;
+
+// Print all Yosys output messages to the JavaScript console
+ys.logprint = false;
+
+// Echo back commands
+ys.echo = false;
+</script>
+
+</body> -->
